@@ -4,17 +4,29 @@ using System.Reflection;
 
 namespace EntityDock.Lib.Auto
 {
-
     /// <summary>
-    /// Route controllers by generic type uses an attribute: <see cref="SetRouteAttibute"/>
+    /// Genenric app route controller by application convention
     /// </summary>
-    public class GenericControllerRouteConvention : IControllerModelConvention
+    public class GenericAppRouteConvention : IApplicationModelConvention
     {
         /// <summary>
         /// Applied routing selector for generic controllers
         /// </summary>
         /// <param name="controller"></param>
-        public void Apply(ControllerModel controller)
+        public void Apply(ApplicationModel app)
+        {
+            foreach (ControllerModel controller in app.Controllers)
+            {
+                // put a route attribute on controller
+                PutRoute(controller);
+            }
+        }
+
+        /// <summary>
+        /// Proccess controller
+        /// </summary>
+        /// <param name="controller"></param>
+        private static void PutRoute(ControllerModel controller)
         {
             if (controller.ControllerType.IsGenericType)
             {
@@ -23,7 +35,7 @@ namespace EntityDock.Lib.Auto
 
                 if (customNameAttribute?.Route != null)
                 {
-                    // put
+                    // put at the modeling
                     controller.Selectors.Add(new SelectorModel
                     {
                         AttributeRouteModel = new AttributeRouteModel(new RouteAttribute(customNameAttribute.Route)),
