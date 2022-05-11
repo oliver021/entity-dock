@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard1.3</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    
+    <PackageId>EntityDock.Lib.Base</PackageId>
+    <PackageVersion>1.1.2</PackageVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>0.2</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

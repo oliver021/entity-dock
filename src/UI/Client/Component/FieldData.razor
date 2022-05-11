@@ -1,0 +1,60 @@
+﻿@typeparam TField
+
+@switch (ElementName)
+{
+    case nameof(String):
+    case nameof(Guid):
+        <MudTextField Label="@Label" T="TField" @bind-Value="Value"></MudTextField>
+        break;
+
+    case nameof(Int16):
+    case nameof(Int32):
+    case nameof(Int64):
+    case nameof(UInt16):
+    case nameof(UInt32):
+    case nameof(UInt64):
+    case nameof(Single):
+    case nameof(Double):
+        <MudNumericField Label="@Label" T="TField"  @bind-Value="Value"></MudNumericField>
+        break;
+
+    case nameof(DateTime):
+        <MudDatePicker Label="@Label" @bind-Date="ValueDate" />
+        break;
+
+    case nameof(TimeSpan):
+        break;
+
+    case nameof(Boolean):
+        break;
+
+    default:
+
+        if (TypeInstance.IsArray)
+        {
+
+        }
+
+        if (TypeInstance.IsEnum)
+        {
+        }
+        break;
+
+}
+
+@code {
+
+    [Parameter]
+    public TField Value { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = null;
+
+    public DateTime? ValueDate {
+        get { return this.Value as DateTime?; }
+        set { this.Value = value as dynamic; }
+    }
+
+    private string ElementName = typeof(TField).Name;
+    private Type TypeInstance = typeof(TField);
+}

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <PackageId>EntityDock.Lib.Persistence</PackageId>
+    <PackageVersion>1.1.2</PackageVersion>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>0.2</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.10" />
+    <PackageReference Include="Z.EntityFramework.Extensions.EFCore" Version="3.13.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Base\EntityDock.Lib.Base.csproj" />
+  </ItemGroup>
+
+</Project>

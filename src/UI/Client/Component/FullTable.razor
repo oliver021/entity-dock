@@ -1,0 +1,421 @@
+﻿@using System.Net.Http.Json
+@inject HttpClient httpClient
+@typeparam Element
+@using System.ComponentModel.DataAnnotations.Schema
+@using System.Reflection
+@using MudBlazor.Services
+@using EntityDock.Extensions.Query
+
+@inject ISnackbar snack
+@inject IDialogService dialog
+
+<MudContainer>
+    <MudGrid Spacing="1" Justify="Justify.Center">
+        <MudItem xs="12">
+            <MudPaper>
+                <MudTable Loading="@loading"
+                          LoadingProgressColor="Color.Info"
+                          ServerData="@(new Func<TableState, Task<TableData<Element>>>(ServerLoad))"
+                          Hover="true"
+                          @ref="table">
+
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h5">@Title</MudText>
+                        <MudContainer MaxWidth="MaxWidth.ExtraSmall">
+                            <MudFab Size="Size.Small" IconSize="Size.Small"
+                                    Color="Color.Success"
+                                    Icon="@Icons.Material.Filled.Add" />
+
+                            <MudFab OnClick="@(() => ToggleOpenFilter())"
+                                    Size="Size.Small"
+                                    IconSize="Size.Small"
+                                    DisableElevation="@(!filterUse)"
+                                    Color="@(filterUse ? Color.Primary : Color.Default)"
+                                    Icon="@Icons.Material.Filled.FilterList" />
+
+                            <MudFab OnClick="@(() => ToggleOpenSearchOption())"
+                                    Size="Size.Small" IconSize="Size.Small"
+                                    Color="Color.Primary"
+                                    Icon="@Icons.Material.Filled.Settings" />
+
+                            <MudPopover Open="@showSearchOption" Class="px-4 pt-4">
+                                <MudText>Show Field:</MudText>
+                                <MudDivider DividerType="DividerType.Middle" />
+                                <MudChipSet @bind-SelectedChips="@SelectFieldsChip" MultiSelection="true" Filter="true">
+                                    @foreach (var item in MapFieldChip())
+                                    {
+                                        <MudChip Text="@item.Item1" Default="@item.Item2"></MudChip>
+                                    }
+                                </MudChipSet>
+
+                                <MudDivider DividerType="DividerType.FullWidth" />
+
+                                <MudText>Search Options:</MudText>
+                                <MudDivider DividerType="DividerType.Middle" />
+                                <MudRadioGroup @bind-SelectedOption="@_searchMethod">
+                                    <MudRadio Color="Color.Primary" Option="@(SearchMethod.Contains)">Any</MudRadio>
+                                    <MudRadio Color="Color.Primary" Option="@(SearchMethod.StartWiths)">Start</MudRadio>
+                                    <MudRadio Color="Color.Primary" Option="@(SearchMethod.Endwiths)">End</MudRadio>
+                                    <MudRadio Color="Color.Primary" Option="@(SearchMethod.Regex)">Regex</MudRadio>
+                                </MudRadioGroup>
+                                <MudSwitch @bind-Checked="@_caseSensitive" Label="Case Sensitive" Color="Color.Primary" />
+
+                                <MudDivider DividerType="DividerType.FullWidth" />
+
+                                <MudButton OnClick="@(() => ToggleOpenSearchOption())"
+                                           Class="ml-auto mr-n3 mb-1"
+                                           Color="Color.Error">Close</MudButton>
+                            </MudPopover>
+
+                            <MudPopover Open="@filterShow" Class="px-4 pt-4">
+                                <MudText>Filter:</MudText>
+                                <MudDivider />
+                                <FilterBox />
+                                <MudSwitch @bind-Checked="@_caseSensitive" Label="Case Sensitive" Color="Color.Primary" />
+                                <MudButton OnClick="@(() => ToggleOpenFilter())"
+                                           Class="ml-auto mr-n3 mb-1"
+                                           Color="Color.Error">Close</MudButton>
+                            </MudPopover>
+                        </MudContainer>
+
+                        @*<MudTextField T="string"
+                ValueChanged="@(s=> OnSearch(s))"
+                Placeholder="Search"
+                Adornment="Adornment.Start"
+                AdornmentIcon="@Icons.Material.Filled.Search"
+                IconSize="Size.Medium"
+                Class="mt-0">
+                  </MudTextField>*@
+                        <MudAutocomplete T="TextCount"
+                                         Label="Search"
+                                         ValueChanged="@(s=> OnSearch(s.Text))"
+                                         ToStringFunc="@ViewStats"
+                                         SearchFunc="@ProcessResult"
+                                         ResetValueOnEmptyText="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         AdornmentColor="Color.Primary" />
+
+                    </ToolBarContent>
+
+                    <HeaderContent>
+                        @foreach (var item in SelectedFields)
+                        {
+                            <MudTh><MudTableSortLabel SortLabel="@item.Key" T="Element">@item.Key</MudTableSortLabel></MudTh>
+                        }
+                        @if (HasActions())
+                        {
+                            <MudTh>
+                                Actions
+                            </MudTh>
+                        }
+                    </HeaderContent>
+                    <RowTemplate>
+                        @foreach (var item in SelectedFields)
+                        {
+                            <MudTd DataLabel="@item.Key">@GetValueFrom(item.Key, context)</MudTd>
+                        }
+                        @if (HasActions())
+                        {
+                            <MudTd Style="@ComputeWidth" DataLabel="actions">
+                                <MudContainer>
+                                    @if (ShowDetails())
+                                    {
+                                        <MudFab Size="Size.Small" IconSize="Size.Small"
+                                                Color="Color.Info" Icon="@Icons.Material.Filled.ViewList" />
+                                    }
+
+                                    @if (Setting.Level.Contains(ActionLevel.All) || Setting.Level.Contains(ActionLevel.Edit))
+                                    {
+                                        <MudFab Size="Size.Small" IconSize="Size.Small"
+                                                Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" />
+
+                                    }
+
+                                    @if (Setting.Level.Contains(ActionLevel.All) || Setting.Level.Contains(ActionLevel.Delete))
+                                    {
+                                        <MudFab Size="Size.Small" IconSize="Size.Small"
+                                                Color="Color.Error" Icon="@Icons.Material.Filled.Delete" />
+                                    }
+                                </MudContainer>
+                            </MudTd>
+                        }
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+                </MudTable>
+
+                @* Scroll feature *@
+                <MudScrollToTop>
+                    <MudFab 
+                            Color="Color.Primary" 
+                            Icon="@Icons.Filled.ArrowCircleUp" />
+                </MudScrollToTop>
+
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Usage { get; set; } = "*";
+
+    [Parameter]
+    public FullTableOptions Setting { get; set; }
+
+    private bool loading;
+
+    private bool showSearchOption = false;
+
+    private bool showManyOption = false;
+
+    private bool filterUse = false;
+
+    private bool filterShow = false;
+
+    /// <summary>
+    /// All is entry for here
+    /// </summary>
+    private Dictionary<string, PropertyInfo> AllFields => typeof(Element).GetProperties()
+           .Where(x => x.CanRead)
+           .Where(x => !x.IsDefined(typeof(NotMappedAttribute), true))
+           .ToDictionary(x => x.Name, x => x);
+
+    /// <summary>
+    /// Filters elements field by selected
+    /// </summary>
+    private Dictionary<string, PropertyInfo> SelectedFields => typeof(Element).GetProperties()
+        .Where(x => x.CanRead)
+        .Where(x => !x.IsDefined(typeof(NotMappedAttribute), true))
+        .Where(x => SelectFieldsChip.Select(x => x.Text).Contains(x.Name))
+        .ToDictionary(x => x.Name, x => x);
+
+    private IEnumerable<Element> pagedData;
+
+    private IEnumerable<TextCount> _recordText;
+
+    private MudTable<Element> table;
+
+    private MudChip[] SelectFieldsChip = Array.Empty<MudChip>();
+
+    private int totalItems;
+
+    private SearchMethod _searchMethod = SearchMethod.Contains;
+
+    private string searchString = null;
+
+    private bool _caseSensitive = false;
+
+    private string[] _useFieldsParsed = null;
+
+    private string ComputeWidth
+    {
+        get
+        {
+            int result = 0;
+
+            if (ShowDetails())
+            {
+                result += 90;
+            }
+
+            if (Setting.Level.Contains(ActionLevel.All) || Setting.Level.Contains(ActionLevel.Edit))
+            {
+                result += 90;
+            }
+
+            if (Setting.Level.Contains(ActionLevel.All) || Setting.Level.Contains(ActionLevel.Delete))
+            {
+                result += 90;
+            }
+            return $"width:{result}px;padding:0";
+        }
+    }
+
+    public IEnumerable<Tuple<string, bool>> MapFieldChip()
+    {
+        return AllFields.Select(x => Tuple.Create(x.Key, _useFieldsParsed.Contains(x.Key)));
+    }
+
+    /// <summary>
+    /// Initialized ----------- start with this method
+    /// 
+    /// ______________________________________________
+    /// 
+    /// ** First initialize some variable to prepare model
+    /// ** Pull text record structure to make autocomplete records
+    /// 
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        _useFieldsParsed = Usage == "*" ? AllFields.Select(x => x.Key).ToArray() : Usage.Split(',').ToArray();
+
+        if (Setting is null)
+        {
+            Setting = new FullTableOptions();
+        }
+
+        // find text record
+        _recordText = await httpClient.GetFromJsonAsync<TextCount[]>("Markets/query/get-text");
+
+        foreach (var item in _recordText.Where(x => x.Count > 4))
+        {
+            Console.WriteLine("text: {0}, count:{1}", item.Text, item.Count);
+        }
+    }
+
+    /// <summary>
+    /// Here we fetch data from server
+    /// </summary>
+    public async Task<TableData<Element>> ServerLoad(TableState state)
+    {
+        PaginatedResult<List<Element>> data = null;
+        try
+        {
+            loading = true;
+
+            // make query
+            data = await httpClient.ExecuteQuery<Element>("Markets", state.BuildQuery(null, null, new SearchQuery
+            {
+                Search = searchString,
+                Method = _searchMethod.ToString(),
+                CaseSensitive = _caseSensitive
+            }));
+
+            totalItems = data.TotalCount;
+            pagedData = data.Data;
+        }
+        catch (Exception err)
+        {
+            Console.WriteLine("Error:{0}", err.Message);
+            throw;
+        }
+        finally
+        {
+            loading = false;
+
+            // temp method, I need better way
+            StateHasChanged();
+        }
+        return new TableData<Element>() { TotalItems = totalItems, Items = pagedData };
+    }
+
+    protected bool HasActions()
+    {
+        return Setting.Level.Any() || ShowDetails();
+    }
+
+    protected bool ShowDetails()
+    {
+        return SelectedFields.Count < AllFields.Count || _useFieldsParsed is null;
+    }
+
+    protected void ToggleOpenSearchOption()
+    {
+        showSearchOption = !showSearchOption;
+    }
+
+    protected void ToggleOpenManyOption()
+    {
+        showManyOption = !showManyOption;
+    }
+
+    protected void ToggleOpenFilter()
+    {
+        filterShow = !filterShow;
+    }
+
+    private async void OnButtonClicked()
+    {
+        bool? result = await dialog.ShowMessageBox(
+            "Warning",
+            "Deleting can not be undone!",
+            yesText: "Delete!", cancelText: "Cancel");
+        bool deleted = result == null;
+    }
+
+    protected void ShowDeleteInfo()
+    {
+        snack.Add("The record is deleted", Severity.Error, config =>
+        {
+            config.ShowCloseIcon = false;
+            config.Icon = Icons.Filled.RestoreFromTrash;
+        });
+    }
+
+    /// <summary>
+    /// Fetch value from field and passed object
+    /// </summary>
+    /// <param name="field"></param>
+    /// <param name="current"></param>
+    /// <returns></returns>
+    private object GetValueFrom(string field, object current)
+    {
+        return AllFields[field].GetValue(current);
+    }
+
+
+    private void OnSearch(string text)
+    {
+        searchString = text;
+        table.ReloadServerData();
+    }
+
+    /// <summary>
+    /// The process result for search autocomplete
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private Task<IEnumerable<TextCount>> ProcessResult(string value)
+    {
+        // if text is null or empty, don't return values (drop-down will not open)
+        if (string.IsNullOrEmpty(value) || string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(Array.Empty<TextCount>().AsEnumerable());
+        }
+        else
+        {
+            var q = _recordText.Where(r =>
+            {
+                if (r is null || r.Text is null)
+                {
+                    return false;
+                }
+
+                switch (_searchMethod)
+                {
+                    case SearchMethod.Contains:
+                        return _caseSensitive ? r.Text.Contains(value) : r.Text.ToLower().Contains(value.ToLower());
+
+                    case SearchMethod.StartWiths:
+                        return _caseSensitive ? r.Text.StartsWith(value) : r.Text.ToLower().StartsWith(value.ToLower());
+
+                    case SearchMethod.Endwiths:
+                        return _caseSensitive ? r.Text.EndsWith(value) : r.Text.ToLower().EndsWith(value.ToLower());
+
+                    case SearchMethod.Regex:
+                        return false;
+
+                    default:
+                        throw new InvalidOperationException();
+                }
+            })
+            .OrderByDescending(x => x.Count)
+            .AsEnumerable();
+
+            //.Select(r => r.Text + $"         {r.Count} match found");
+
+            return Task.FromResult(q);
+        }
+    }
+
+    private string ViewStats(TextCount r)
+    {
+        return r.Text + $"         {r.Count} match found";
+    }
+}
