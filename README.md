@@ -1,7 +1,7 @@
 # EntityDock
 
 <p align="center">
-  <img src="entitydock-logo.png">
+  <img width="290" height="290" src="entitydock-logo.png">
 </p>
 
 EntityDock is a complete set of libraries as a complete SDK that comes with tools, utilities, and samples,
