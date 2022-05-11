@@ -1,5 +1,7 @@
 # EntityDock
 
+![EntityDock logo](entitydock-logo.png)
+
 EntityDock is a complete set of libraries as a complete SDK that comes with tools, utilities, and samples,
 providing a lot of functionality and infrastructure for designing entity-oriented data applications.
 
