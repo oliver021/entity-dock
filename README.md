@@ -63,6 +63,22 @@ The easiest way to install EntityDock in your project is to install the latest E
 
 It's possible that more packages may be added in the future.
 
+
+
+You can install these package following the next example:
+
+```bash
+Install-Package EntityDock.Lib.Auto
+```
+
+or using dotnet CLI:
+
+```bash
+dotnet add package EntityDock.Lib.Auto
+```
+
+
+
 # Key questions
 
 **What's mean "generate controller"?** Yes, without writing a line of code or declaring a class you can have API Controllers base on ASP.NET Core MVC from declared entities. The code required for this is as follows:
@@ -76,6 +92,7 @@ When you are setting up your MVC options in ASP.NET Core, you must call this met
 ```c#
 [SetRouteAttibute("data/students")]
 public class StudentEntity{
+    
     public uint Id {get;set;}
     
     public string Name {get;set;}
@@ -88,11 +105,9 @@ public class StudentEntity{
 }
 ```
 
-Then you will have a complete API Rest about this entity with full methods, Crud, search, filters, sort and more. 
+Then you will have a complete API Rest about this entity with full methods, Crud, search, filters, sort and more. Of course you should care about your DB connections and migrations if you are using relational database. This package is completely compatible with Entity Framework Core.  
 
-**How works the `AutoDbContext`?** It's simple, this is a class that derived from `DbContext` in Entity Framework, then using this class, you can create a context from external assemblies or types collections that will has these types as entities and this context can be used like other any context of Entity Framework.      Using this way you cannot setup via `ModelBuilder` API fluent methods inside context class, you just have conventions and annotations for `AutoDbContext`. This is a natural limitations 'cause its job consists of including different entities without declare specific `DbContext`. 
-
-
+**How works the `AutoDbContext`?** It's simple, this is a class that derived from `DbContext` in Entity Framework Core, then using this class, you can create a context from external assemblies or types collections that will has these types as entities and this context can be used like other any context of Entity Framework. Using this way you cannot setup via `ModelBuilder` API fluent methods inside context class, you just have conventions and annotations for `AutoDbContext`. This is a natural limitations 'cause its job consists of including different entities without declare specific `DbContext`. 
 
 ## Contributing
 

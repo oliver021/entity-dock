@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc.ApplicationParts;
 
 namespace EntityDock.Lib.Auto
 {
-
     /// <summary>
     /// Create controller by passed types as controller
     /// </summary>
@@ -25,7 +24,6 @@ namespace EntityDock.Lib.Auto
         {
             // filter and take an array of the candidates
             return new ControllerMakerFeatureProvider(types: assembly.GetExportedTypes()
-               .Where(t => t.IsEntity())
                .Where(t => t.IsDefined(typeof(SetRouteAttibute)))
                .ToArray()
             );
@@ -35,15 +33,22 @@ namespace EntityDock.Lib.Auto
         /// Require entry types for mapping
         /// </summary>
         /// <param name="types"></param>
-        public ControllerMakerFeatureProvider(Type[] types)
+        public ControllerMakerFeatureProvider(Type[] types, AutoApiOption options = default)
         {
-            TargetTypes = types;
+            if (options is null)
+            {
+                options = new AutoApiOption();
+            }
+
+            TargetTypes = types ?? throw new ArgumentNullException(nameof(types));
+            Options = options;
         }
 
         /// <summary>
         /// All passed types
         /// </summary>
         public Type[] TargetTypes { get; }
+        public AutoApiOption Options { get; }
 
         /// <summary>
         /// Populate all controller created from passed types
@@ -57,7 +62,7 @@ namespace EntityDock.Lib.Auto
             {
                 // push new controller from route
                 feature.Controllers.Add(item: GetCandidateController(route)
-                    .MakeGenericType(route.Model)
+                    .MakeGenericType(route.Model, HelpersExtensions.FindKeyType(route.Model))
                     .GetTypeInfo()
                 );
             }
@@ -71,9 +76,10 @@ namespace EntityDock.Lib.Auto
         private Type GetCandidateController(UnitRoute item)
         => item.ModelType switch
         {
-            ModelType.FullyFeatures => typeof(FullyFeatureController<,>),
-            ModelType.Record => typeof(RecordController<,>),
-            //ModelType.Record => typeof(),
+            ModelType.FullyFeatures when(Options.ApiUsageService) => typeof(FullyFeatureController<,>),
+            ModelType.Record when(Options.ApiUsageService) => typeof(RecordController<,>),
+            ModelType.FullyFeatures => typeof(RepoFullyFeatureController<,>),
+            ModelType.Record => typeof(RepoRecordController<,>),
             _ => null
         };
 
@@ -87,17 +93,31 @@ namespace EntityDock.Lib.Auto
             {
                 var attr = target.GetCustomAttribute<EntityAttribute>();
 
-                // make an route from attributes specifications
-                return new UnitRoute { 
-                    Model = target,
-                    ModelType = attr.Usage switch
+                // if has attribute
+                if (attr != null)
+                {
+                    // make an route from attributes specifications
+                    return new UnitRoute
                     {
-                        EntityUsage.Readonly => ModelType.Readonly,
-                        EntityUsage.Record => ModelType.Record,
-                        EntityUsage.FullyUsage => ModelType.FullyFeatures,
-                        _ => throw new InvalidOperationException()
-                    }
-                };
+                        Model = target,
+                        ModelType = attr.Usage switch
+                        {
+                            EntityUsage.Readonly => ModelType.Readonly,
+                            EntityUsage.Record => ModelType.Record,
+                            EntityUsage.FullyUsage => ModelType.FullyFeatures,
+                            _ => throw new InvalidOperationException()
+                        }
+                    };
+                }
+                else
+                {
+                    // from static definition
+                    return new UnitRoute
+                    {
+                        Model = target,
+                        ModelType = ModelType.FullyFeatures
+                    };
+                }
             });
         }
     }

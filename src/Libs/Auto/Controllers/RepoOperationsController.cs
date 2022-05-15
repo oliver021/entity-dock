@@ -1,10 +1,8 @@
 ﻿using EntityDock.Entities.Base;
-using EntityDock.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EntityDock.Lib.Auto.Controllers
@@ -13,27 +11,27 @@ namespace EntityDock.Lib.Auto.Controllers
     /// Markets crud example with functional Api Systems
     /// </summary>
     //[ApiController]
-    public abstract class OperationsController<T, TID> : ControllerBase
+    public abstract class RepoOperationsController<T, TID> : ControllerBase
         where T : AggregateRoot<TID>
     {
         /// <summary>
         /// Require basic data service
         /// </summary>
         /// <param name="service"></param>
-        public OperationsController(DataService<T, TID> service)
+        public RepoOperationsController(IRepository<T, TID> service)
         {
             if (service is null)
             {
                 throw new ArgumentNullException(nameof(service));
             }
 
-            DataService = service;
+            Repo = service;
         }
 
         /// <summary>
         /// Reference of the active service for this entity
         /// </summary>
-        public DataService<T, TID> DataService { get; set; }
+        public IRepository<T, TID> Repo { get; set; }
 
         /// <summary>
         /// Actualiza un registro con datos que entran en el cuerpo de la peticion
@@ -47,7 +45,7 @@ namespace EntityDock.Lib.Auto.Controllers
         {
             try
             {
-                await DataService.UpdateAsync(id, data);
+                await Repo.UpdateAsync(id, data);
             }
             catch (Exception)
             {
@@ -67,7 +65,7 @@ namespace EntityDock.Lib.Auto.Controllers
         {
             try
             {
-                await DataService.RemoveAsync(id);
+                await Repo.DeleteAsync(id);
             }
             catch (Exception)
             {
@@ -87,10 +85,10 @@ namespace EntityDock.Lib.Auto.Controllers
         {
             try
             {
-                var result = await DataService.InsertRecord(data);
+                var result = await Repo.StoreAnsyc(data);
                 return StatusCode(201, new
                 {
-                    result.Result,
+                    data.Id,
                 });
             }
             catch (Exception)
@@ -111,7 +109,7 @@ namespace EntityDock.Lib.Auto.Controllers
         {
             try
             {
-                await DataService.InsertBatch(data);
+                await Repo.BulkStore(data);
                 return NoContent();
             }
             catch (Exception)
